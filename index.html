@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OS Resource Allocation Graph (RAG) Simulator & Deadlock Detector</title>
+  <meta name="description" content="Interactive Operating System Resource Allocation Graph (RAG) Simulator, Cycle Detection Engine, and Multi-Instance Graph Reduction Deadlock Analyzer.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="6" r="3" />
+          <rect x="15" y="3" width="6" height="6" rx="1" />
+          <path d="M9 6h6M6 9v6M18 9v6M6 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM15 15h6v6h-6z" />
+          <path d="M15 6l-6 12M6 6l12 12" stroke-dasharray="2 2" opacity="0.4" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">RAG Simulator <span class="brand-tag">OS DEADLOCK LAB</span></h1>
+        <p class="brand-subtitle">Resource Allocation Graph Engine &bull; Cycle Detection &bull; Multi-Instance Reduction</p>
+      </div>
+    </div>
+
+    <!-- Presets Toolbar -->
+    <div class="presets-toolbar">
+      <span class="toolbar-label">Preset Scenarios:</span>
+      <button class="btn btn-preset" id="btn-scenario-a" title="Scenario A: Safe state with no cycles">
+        <span class="preset-badge">A</span> Safe State
+      </button>
+      <button class="btn btn-preset" id="btn-scenario-b" title="Scenario B: Single-instance 2-process loop">
+        <span class="preset-badge">B</span> Single-Inst Deadlock
+      </button>
+      <button class="btn btn-preset" id="btn-scenario-c" title="Scenario C: Multi-instance cycle resolved by reduction">
+        <span class="preset-badge">C</span> Reducible Cycle
+      </button>
+      <button class="btn btn-preset" id="btn-scenario-d" title="Scenario D: Multi-instance circular wait with deadlock">
+        <span class="preset-badge">D</span> Multi-Inst Deadlock
+      </button>
+    </div>
+
+    <!-- Global Actions -->
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" id="btn-layout-toggle" title="Switch layout mode">
+        <span id="layout-label">&#9776; Bipartite View</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" id="btn-export-json" title="Export graph as JSON">&#8681; Export</button>
+      <button class="btn btn-secondary btn-sm" id="btn-import-json" title="Import graph from JSON">&#8679; Import</button>
+      <input type="file" id="file-import-input" accept=".json" style="display: none;" />
+      <button class="btn btn-danger-outline btn-sm" id="btn-reset-graph" title="Clear entire graph">&#8635; Reset</button>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <!-- Left Operations & Controls Panel -->
+    <aside class="sidebar-panel control-panel">
+      <div class="panel-section">
+        <h2 class="section-title">Graph Entity Management</h2>
+        
+        <!-- Add Process -->
+        <div class="entity-creator-group">
+          <label class="input-label" for="input-process-id">Process Node (Circle):</label>
+          <div class="input-with-button">
+            <input type="text" id="input-process-id" placeholder="e.g. P1" maxlength="6" />
+            <button class="btn btn-primary" id="btn-add-process">+ Add Process</button>
+          </div>
+        </div>
+
+        <!-- Add Resource -->
+        <div class="entity-creator-group">
+          <label class="input-label" for="input-resource-id">Resource Node (Rectangle):</label>
+          <div class="resource-inputs-row">
+            <input type="text" id="input-resource-id" placeholder="e.g. R1" maxlength="6" />
+            <div class="capacity-field">
+              <span class="field-hint">Cap:</span>
+              <input type="number" id="input-resource-capacity" value="1" min="1" max="10" />
+            </div>
+            <button class="btn btn-primary" id="btn-add-resource">+ Add Resource</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic Operations API -->
+      <div class="panel-section">
+        <h2 class="section-title">Dynamic Operations</h2>
+        
+        <div class="operation-card">
+          <div class="op-selectors-row">
+            <div class="form-control">
+              <label class="op-sublabel">Process:</label>
+              <select id="select-op-process" class="styled-select"></select>
+            </div>
+            <div class="form-control">
+              <label class="op-sublabel">Resource:</label>
+              <select id="select-op-resource" class="styled-select"></select>
+            </div>
+            <div class="form-control count-control">
+              <label class="op-sublabel">Count:</label>
+              <input type="number" id="input-op-count" value="1" min="1" max="10" />
+            </div>
+          </div>
+
+          <div class="op-buttons-grid">
+            <button class="btn btn-action btn-request" id="btn-exec-request" title="Adds request edge Pi -> Rj; allocates if available, blocks if empty">
+              <span class="btn-icon">&rarr;</span> Request Edge
+            </button>
+            <button class="btn btn-action btn-release" id="btn-exec-release" title="Releases allocation Rj -> Pi and unblocks FIFO wait queue">
+              <span class="btn-icon">&larr;</span> Release Edge
+            </button>
+            <button class="btn btn-action btn-claim" id="btn-exec-claim" title="Sets potential claim limit (Banker's Algorithm dashed edge)">
+              <span class="btn-icon">&dash;</span> Set Claim
+            </button>
+            <button class="btn btn-action btn-terminate" id="btn-exec-terminate" title="Terminates process, frees all held resources, and unblocks waiters">
+              <span class="btn-icon">&cross;</span> Terminate
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node Quick Inspector -->
+      <div class="panel-section" id="inspector-section">
+        <h2 class="section-title">Inspector &bull; <span id="inspector-target-name">None Selected</span></h2>
+        <div class="inspector-card" id="inspector-card">
+          <p class="empty-hint">Click any Process or Resource in the graph to view details and fast actions.</p>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Reduction Stepper -->
+      <div class="panel-section">
+        <h2 class="section-title">Graph Reduction Stepper</h2>
+        <div class="reduction-controller">
+          <div class="reduction-buttons">
+            <button class="btn btn-sm btn-secondary" id="btn-reduction-prev" title="Previous reduction step">&larr; Prev</button>
+            <button class="btn btn-sm btn-primary" id="btn-reduction-auto" title="Auto run reduction steps">&#9658; Auto Play</button>
+            <button class="btn btn-sm btn-secondary" id="btn-reduction-next" title="Next reduction step">Next &rarr;</button>
+            <button class="btn btn-sm btn-outline" id="btn-reduction-reset" title="Reset reduction view">&#8635;</button>
+          </div>
+          <div class="reduction-step-card" id="reduction-step-display">
+            <span class="step-badge" id="reduction-step-badge">Ready</span>
+            <p class="step-desc" id="reduction-step-desc">Reduction evaluates whether processes outside or inside cycles can finish safely.</p>
+            <div class="work-vector-display" id="reduction-work-vector">Work: []</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Interactive Canvas Viewport -->
+    <main class="graph-main">
+      <div class="canvas-toolbar">
+        <div class="graph-legend">
+          <span class="legend-item"><span class="legend-dot dot-active"></span> Process (Active)</span>
+          <span class="legend-item"><span class="legend-dot dot-blocked"></span> Process (Blocked)</span>
+          <span class="legend-item"><span class="legend-dot dot-deadlock"></span> Deadlocked</span>
+          <span class="legend-item"><span class="legend-box box-resource"></span> Resource (Instances &bull;)</span>
+          <span class="legend-item"><span class="legend-line line-request"></span> Request (P&rarr;R)</span>
+          <span class="legend-item"><span class="legend-line line-assignment"></span> Assignment (R&rarr;P)</span>
+        </div>
+        <div class="canvas-controls">
+          <button class="btn-icon-control" id="btn-zoom-in" title="Zoom In">+</button>
+          <button class="btn-icon-control" id="btn-zoom-out" title="Zoom Out">&minus;</button>
+          <button class="btn-icon-control" id="btn-fit-view" title="Fit View to Screen">&#9974;</button>
+          <button class="btn-icon-control" id="btn-recenter" title="Center View">&#8853;</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper" id="canvas-container">
+        <canvas id="rag-canvas"></canvas>
+      </div>
+
+      <!-- Quick Canvas Overlay Notice -->
+      <div id="canvas-empty-state" class="canvas-empty-state hidden">
+        <p>Graph is currently empty. Click one of the <strong>Preset Scenarios</strong> above or add entities on the left!</p>
+      </div>
+    </main>
+
+    <!-- Right Diagnostics, Matrices & Event Log Panel -->
+    <aside class="sidebar-panel diagnostics-panel">
+      <!-- Real-time Diagnostic Status Card -->
+      <div class="diagnostic-status-card" id="diagnostic-banner">
+        <div class="status-header">
+          <span class="status-indicator-dot" id="status-dot"></span>
+          <h2 class="status-title" id="status-title">EVALUATING...</h2>
+        </div>
+        <p class="status-summary" id="status-summary">Loading system status...</p>
+        
+        <div class="status-metrics-grid">
+          <div class="metric-box">
+            <span class="metric-label">Directed Cycles</span>
+            <span class="metric-value" id="val-cycle-count">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Deadlocked Procs</span>
+            <span class="metric-value text-danger" id="val-deadlocked-procs-count">0</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Single-Instance?</span>
+            <span class="metric-value" id="val-is-single">No</span>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Graph Reducible?</span>
+            <span class="metric-value" id="val-is-reducible">Yes</span>
+          </div>
+        </div>
+
+        <div class="cycles-details-box" id="cycles-details-box">
+          <span class="box-sublabel">Detected Cycles:</span>
+          <div id="cycles-list-content" class="cycles-list-content">None</div>
+        </div>
+      </div>
+
+      <!-- Matrices Section -->
+      <div class="panel-section">
+        <div class="section-header-flex">
+          <h2 class="section-title">System Allocation Matrices</h2>
+          <div class="matrix-tab-group">
+            <button class="matrix-tab active" data-tab="combined">Both</button>
+            <button class="matrix-tab" data-tab="alloc">Alloc</button>
+            <button class="matrix-tab" data-tab="req">Request</button>
+          </div>
+        </div>
+
+        <div class="matrix-container" id="matrix-container">
+          <table class="matrix-table" id="matrix-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <!-- Available / Total Vector Cards -->
+        <div class="vector-cards-row" id="vector-cards-row"></div>
+      </div>
+
+      <!-- Live Event Log -->
+      <div class="panel-section event-log-section">
+        <div class="section-header-flex">
+          <h2 class="section-title">Event &amp; Audit Log</h2>
+          <button class="btn btn-xs btn-outline" id="btn-clear-log">Clear</button>
+        </div>
+        <div class="log-stream" id="log-stream"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
