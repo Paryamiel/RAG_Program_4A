@@ -42,10 +42,16 @@
       <button class="btn btn-preset" id="btn-scenario-d" title="Scenario D: Multi-instance circular wait with deadlock">
         <span class="preset-badge">D</span> Multi-Inst Deadlock
       </button>
+      <button class="btn btn-preset btn-preset-random" id="btn-scenario-random" title="Generate a random graph scenario with randomized processes, resources, allocations, and requests">
+        <span class="preset-badge">🎲</span> Random
+      </button>
     </div>
 
     <!-- Global Actions -->
     <div class="header-actions">
+      <button class="btn btn-instructions" id="btn-open-instructions" title="Open beginner-friendly instructions guide">
+        <span class="btn-icon">📖</span> Instructions
+      </button>
       <button class="btn btn-secondary btn-sm" id="btn-layout-toggle" title="Switch layout mode">
         <span id="layout-label">&#9776; Bipartite View</span>
       </button>
@@ -77,8 +83,8 @@
           <div class="resource-inputs-row">
             <input type="text" id="input-resource-id" placeholder="e.g. R1" maxlength="6" />
             <div class="capacity-field">
-              <span class="field-hint">Cap:</span>
-              <input type="number" id="input-resource-capacity" value="1" min="1" max="10" />
+              <span class="field-hint">Inst:</span>
+              <input type="number" id="input-resource-capacity" value="1" min="1" max="10" title="Resource Instances" />
             </div>
             <button class="btn btn-primary" id="btn-add-resource">+ Add Resource</button>
           </div>
@@ -152,14 +158,26 @@
     <!-- Center Interactive Canvas Viewport -->
     <main class="graph-main">
       <div class="canvas-toolbar">
+        <div class="canvas-mode-group">
+          <button class="btn-mode active" id="btn-mode-select" title="Select & Move Mode: Click to inspect, drag nodes to move anywhere">
+            <span class="mode-icon">👆</span> Select &amp; Move
+          </button>
+          <button class="btn-mode" id="btn-mode-add-process" title="Click anywhere on canvas to place a new Process node">
+            <span class="mode-icon">⭕</span> + Place Process
+          </button>
+          <button class="btn-mode" id="btn-mode-add-resource" title="Click anywhere on canvas to place a new Resource node">
+            <span class="mode-icon">⬛</span> + Place Resource
+          </button>
+        </div>
+
         <div class="graph-legend">
           <span class="legend-item"><span class="legend-dot dot-active"></span> Process (Active)</span>
-          <span class="legend-item"><span class="legend-dot dot-blocked"></span> Process (Blocked)</span>
-          <span class="legend-item"><span class="legend-dot dot-deadlock"></span> Deadlocked</span>
+          <span class="legend-item"><span class="legend-dot dot-deadlock"></span> Process (Deadlocked)</span>
           <span class="legend-item"><span class="legend-box box-resource"></span> Resource (Instances &bull;)</span>
           <span class="legend-item"><span class="legend-line line-request"></span> Request (P&rarr;R)</span>
           <span class="legend-item"><span class="legend-line line-assignment"></span> Assignment (R&rarr;P)</span>
         </div>
+
         <div class="canvas-controls">
           <button class="btn-icon-control" id="btn-zoom-in" title="Zoom In">+</button>
           <button class="btn-icon-control" id="btn-zoom-out" title="Zoom Out">&minus;</button>
@@ -171,6 +189,30 @@
       <div class="canvas-wrapper" id="canvas-container">
         <canvas id="rag-canvas"></canvas>
       </div>
+
+      <!-- Graph Interpretation & Process-by-Process Summary (Below Graph) -->
+      <section class="graph-interpretation-panel" id="graph-interpretation-panel">
+        <div class="interpretation-header">
+          <div class="interpretation-title-wrap">
+            <span class="interpretation-indicator" id="interpretation-indicator"></span>
+            <span class="interpretation-label">GRAPH INTERPRETATION:</span>
+            <span class="interpretation-badge" id="interpretation-badge">Safe State</span>
+          </div>
+          <div class="interpretation-actions">
+            <button class="btn btn-xs btn-outline" id="btn-copy-interpretation" title="Copy plain text summary to clipboard">📋 Copy Summary</button>
+          </div>
+        </div>
+        
+        <div class="interpretation-body">
+          <div class="interpretation-sentences-box" id="interpretation-sentences-box">
+            <!-- Dynamic sentences describing each process (e.g. "P1 holds R1 and requests an instance to R2") -->
+            <p class="interpretation-placeholder">Load a preset or add nodes to see the real-time graph interpretation.</p>
+          </div>
+          <div class="interpretation-conclusion" id="interpretation-conclusion">
+            <!-- Overall conclusion / verdict -->
+          </div>
+        </div>
+      </section>
 
       <!-- Quick Canvas Overlay Notice -->
       <div id="canvas-empty-state" class="canvas-empty-state hidden">
@@ -244,6 +286,147 @@
         <div class="log-stream" id="log-stream"></div>
       </div>
     </aside>
+  </div>
+
+  <!-- Beginner-Friendly Instructions Modal -->
+  <div class="modal-overlay hidden" id="instructions-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <div class="modal-icon-badge">📖</div>
+          <div>
+            <h2 class="modal-title">RAG Simulator Beginner Guide</h2>
+            <p class="modal-subtitle">Learn how Operating System Resource Allocation Graphs and Deadlocks work in 2 minutes!</p>
+          </div>
+        </div>
+        <button class="btn-icon-control modal-close" id="btn-close-instructions" title="Close Instructions">&times;</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-tab="guide-basics">🔰 1. Shapes &amp; Arrows</button>
+        <button class="modal-tab" data-tab="guide-deadlock">⚠️ 2. What is Deadlock?</button>
+        <button class="modal-tab" data-tab="guide-controls">🎮 3. How to Use the Program</button>
+      </div>
+
+      <div class="modal-content">
+        <!-- Tab 1: Basics -->
+        <div class="tab-pane active" id="pane-guide-basics">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-icon proc-circle">P1</div>
+              <div class="guide-card-info">
+                <h3>Process (Circles)</h3>
+                <p>Represents a running program or task (e.g. Chrome, Spotify, a video game). Each circle is labeled <strong>P1, P2</strong>, etc.</p>
+                <span class="guide-pill active-pill">Active = Ready</span>
+                <span class="guide-pill danger-pill" style="background: rgba(255, 77, 109, 0.18); color: #ff85a1; border-color: rgba(255, 77, 109, 0.35);">Deadlocked = Waiting / Stuck</span>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon res-rect">R1 &bull;</div>
+              <div class="guide-card-info">
+                <h3>Resource (Rectangles)</h3>
+                <p>Represents hardware or software tools (e.g. Printer, RAM, Disk, GPU). The small dots inside show how many <strong>instances (copies)</strong> exist.</p>
+                <span class="guide-pill single-pill">1 dot = Single instance</span>
+                <span class="guide-pill multi-pill">2+ dots = Multiple copies</span>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon edge-alloc-icon">&larr;</div>
+              <div class="guide-card-info">
+                <h3 style="color: var(--color-success);">Resource &rarr; Process (Holds / Allocated)</h3>
+                <p>A <strong>green solid arrow</strong> from a Resource to a Process means the process <em>already holds and is using</em> an instance of that resource.</p>
+                <span class="code-snippet">R1 &rarr; P1 ("P1 holds R1")</span>
+              </div>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon edge-req-icon">&rarr;</div>
+              <div class="guide-card-info">
+                <h3 style="color: var(--color-warning);">Process &rarr; Resource (Requests / Waiting)</h3>
+                <p>An <strong>orange dashed arrow</strong> from a Process to a Resource means the process is <em>waiting for and requesting</em> that resource.</p>
+                <span class="code-snippet">P1 &rarr; R2 ("P1 requests R2")</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Deadlock -->
+        <div class="tab-pane" id="pane-guide-deadlock">
+          <div class="deadlock-explainer-box">
+            <div class="analogy-banner">
+              <span class="analogy-icon">🚗 ↔️ 🚙</span>
+              <div>
+                <h4>The "Narrow Bridge" Analogy</h4>
+                <p>Imagine two cars driving from opposite directions onto a narrow one-lane bridge. Car A cannot cross until Car B backs up. Car B cannot cross until Car A backs up. Neither will back up, so both are frozen forever! That is a <strong>Deadlock</strong>.</p>
+              </div>
+            </div>
+
+            <div class="rules-comparison">
+              <div class="rule-box danger-box">
+                <h4>Rule 1: Single-Instance (1 copy each)</h4>
+                <p>If every resource has only <strong>1 copy</strong>, any circular loop of arrows (e.g., <code>P1 &rarr; R2 &rarr; P2 &rarr; R1 &rarr; P1</code>) means <strong>100% DEADLOCK CONFIRMED</strong>. The processes will wait forever.</p>
+              </div>
+              <div class="rule-box success-box">
+                <h4>Rule 2: Multi-Instance (Multiple copies)</h4>
+                <p>If resources have <strong>2 or more copies</strong>, a cycle does <em>not</em> always mean deadlock! If an outside process finishes and returns copies to the pool, the cycle can safely unblock.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Controls -->
+        <div class="tab-pane" id="pane-guide-controls">
+          <div class="steps-flow">
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <div class="step-info">
+                <h4>Try Presets or 🎲 Random</h4>
+                <p>Click <strong>A, B, C, D</strong> or <strong>🎲 Random</strong> at the top. This immediately loads interesting real-world graphs to study.</p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <div class="step-info">
+                <h4>Move &amp; Place Nodes Anywhere</h4>
+                <p>Click and drag any circle or rectangle with your mouse to reposition it freely. You can also click <strong>⭕ + Place Process</strong> or <strong>⬛ + Place Resource</strong> in the canvas toolbar, then click on the canvas to place new nodes!</p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <div class="step-info">
+                <h4>Connect with Requests &amp; Releases</h4>
+                <p>In the left sidebar under <em>Dynamic Operations</em>, choose a Process and a Resource, then click <strong>&rarr; Request Edge</strong> to ask for it, or <strong>&larr; Release Edge</strong> to return it.</p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">4</div>
+              <div class="step-info">
+                <h4>Read the Plain-English Story Below</h4>
+                <p>Look right below the graph canvas! The <strong>Graph Interpretation</strong> box describes in clear, simple words who holds what and whether a deadlock exists (e.g. <em>"P1 holds R1 and requests an instance to R2"</em>).</p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">5</div>
+              <div class="step-info">
+                <h4>Step-by-Step Reduction</h4>
+                <p>Use the <em>Graph Reduction Stepper</em> on the left. Click <strong>Next &rarr;</strong> to watch how the operating system checks if processes can safely finish one by one.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <span class="footer-hint">💡 Tip: You can reopen this guide anytime by clicking <strong>📖 Instructions</strong> in the top header.</span>
+        <button class="btn btn-primary" id="btn-modal-got-it">Got it! Start Exploring &rarr;</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

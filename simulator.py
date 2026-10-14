@@ -7,6 +7,7 @@ Provides pre-built OS benchmark scenarios:
 - Scenario D: Multi-Instance Cycle WITH Deadlock (Classic Silberschatz multi-instance deadlock)
 """
 
+import random
 from typing import Dict, List, Optional
 from rag_engine import ResourceAllocationGraph
 from deadlock_detector import DeadlockDetector, DeadlockReport
@@ -148,6 +149,54 @@ class RAGSimulator:
         self.rag._log("Loaded Preset Scenario D: Multi-Instance Cycle WITH Deadlock.")
         return self.rag
 
+    def load_random_scenario(self) -> ResourceAllocationGraph:
+        """
+        Generates a randomized Resource Allocation Graph scenario.
+        Randomizes processes (2-3), resources (2-3), capacities, allocations and requests.
+        """
+        self.reset()
+        mode = random.randint(0, 2)
+        proc_count = random.randint(2, 3)
+        res_count = random.randint(2, 3)
+
+        p_ids = [f"P{i}" for i in range(1, proc_count + 1)]
+        r_ids = [f"R{j}" for j in range(1, res_count + 1)]
+
+        for r_id in r_ids:
+            cap = random.randint(2, 3) if mode == 2 else 1
+            self.rag.add_resource(r_id, cap)
+
+        for p_id in p_ids:
+            self.rag.add_process(p_id)
+
+        if mode == 0:
+            # Deadlock loop
+            self.rag.request_resource(p_ids[0], r_ids[0], 1)
+            self.rag.request_resource(p_ids[1], r_ids[1], 1)
+            self.rag.request_resource(p_ids[0], r_ids[1], 1)
+            self.rag.request_resource(p_ids[1], r_ids[0], 1)
+            if proc_count >= 3 and res_count >= 3:
+                self.rag.request_resource(p_ids[2], r_ids[2], 1)
+            self.rag._log(f"Loaded Random Scenario: Deadlock Loop ({proc_count}P, {res_count}R).")
+        elif mode == 1:
+            # Safe state
+            self.rag.request_resource(p_ids[0], r_ids[0], 1)
+            self.rag.request_resource(p_ids[1], r_ids[1], 1)
+            if proc_count >= 3:
+                self.rag.request_resource(p_ids[2], r_ids[0 if res_count < 3 else 2], 1)
+            self.rag._log(f"Loaded Random Scenario: Safe Execution ({proc_count}P, {res_count}R).")
+        else:
+            # Multi-instance
+            self.rag.request_resource(p_ids[0], r_ids[0], 1)
+            self.rag.request_resource(p_ids[1], r_ids[1], 1)
+            if proc_count >= 3:
+                self.rag.request_resource(p_ids[2], r_ids[0], 1)
+            self.rag.request_resource(p_ids[0], r_ids[1], 1)
+            self.rag.request_resource(p_ids[1], r_ids[0], 1)
+            self.rag._log(f"Loaded Random Scenario: Multi-Instance ({proc_count}P, {res_count}R).")
+
+        return self.rag
+
     def load_scenario_by_name(self, name: str) -> ResourceAllocationGraph:
         name = name.strip().upper()
         if name in ("A", "SCENARIO_A", "SCENARIO A"):
@@ -158,5 +207,8 @@ class RAGSimulator:
             return self.load_scenario_c()
         elif name in ("D", "SCENARIO_D", "SCENARIO D"):
             return self.load_scenario_d()
+        elif name in ("RANDOM", "R", "SCENARIO_RANDOM"):
+            return self.load_random_scenario()
         else:
-            raise ValueError(f"Unknown scenario '{name}'. Choose A, B, C, or D.")
+            raise ValueError(f"Unknown scenario '{name}'. Choose A, B, C, D, or RANDOM.")
+

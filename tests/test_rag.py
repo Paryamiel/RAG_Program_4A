@@ -241,6 +241,17 @@ class TestDeadlockDetectionEngine(unittest.TestCase):
         self.assertEqual(rag2.allocations, rag.allocations)
         self.assertEqual(rag2.requests, rag.requests)
 
+    def test_load_random_scenario(self):
+        rag = self.sim.load_random_scenario()
+        self.assertGreaterEqual(len(rag.processes), 2)
+        self.assertGreaterEqual(len(rag.resources), 2)
+        report = self.sim.analyze()
+        self.assertIn(report.status, [DeadlockStatus.NO_DEADLOCK, DeadlockStatus.SAFE_STATE, DeadlockStatus.DEADLOCK_CONFIRMED])
+
+        # Test loading by name 'RANDOM'
+        rag2 = self.sim.load_scenario_by_name("RANDOM")
+        self.assertGreaterEqual(len(rag2.processes), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

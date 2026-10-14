@@ -136,7 +136,7 @@ Type 'help' for commands or 'load <A|B|C|D>' for standard OS textbook scenarios.
     def print_help(self):
         help_text = f"""
 {BOLD}Available Commands:{RESET}
-  {CYAN}load <A|B|C|D>{RESET}           : Load benchmark scenario (A: Safe, B: 1-Inst Deadlock, C: Reducible Cycle, D: Deadlock)
+  {CYAN}load <A|B|C|D|RANDOM>{RESET}    : Load preset (A: Safe, B: 1-Inst Deadlock, C: Reducible Cycle, D: Deadlock, RANDOM: Random Graph)
   {CYAN}detect{RESET} / {CYAN}analyze{RESET}          : Run cycle detection & reduction algorithm
   {CYAN}graph{RESET}                    : Display ASCII graph topology
   {CYAN}matrix{RESET}                   : Display Allocation and Request tables
@@ -198,7 +198,7 @@ Type 'help' for commands or 'load <A|B|C|D>' for standard OS textbook scenarios.
 
                 elif cmd == "load":
                     if not args:
-                        print("Usage: load <A|B|C|D>")
+                        print("Usage: load <A|B|C|D|RANDOM>")
                         continue
                     scenario_name = args[0].upper()
                     self.simulator.load_scenario_by_name(scenario_name)
